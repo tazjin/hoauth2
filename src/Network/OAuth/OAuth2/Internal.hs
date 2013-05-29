@@ -8,14 +8,13 @@
 
 module Network.OAuth.OAuth2.Internal where
 
-import           Control.Applicative ((<$>), (<*>))
-import           Control.Monad       (mzero)
+import           Control.Applicative  ((<$>), (<*>))
+import           Control.Monad        (mzero)
 import           Data.Aeson
-import qualified Data.ByteString     as BS
+import qualified Data.ByteString      as BS
 import qualified Data.ByteString.Lazy as BSL
-import           Data.Maybe          (fromMaybe)
-import           Data.Typeable       (Typeable)
-import           Network.HTTP.Types  (renderSimpleQuery)
+import           Data.Maybe           (fromMaybe, isJust)
+import           Network.HTTP.Types   (renderSimpleQuery)
 
 --------------------------------------------------
 -- * Data Types
@@ -58,16 +57,16 @@ type OAuth2Result a = Either BSL.ByteString a
 -- * Types Synonym
 --------------------------------------------------
 
--- | type synonym of query parameters
+-- | type synonym for query parameters
 type QueryParams = [(BS.ByteString, BS.ByteString)]
 
--- | type synonym of post body content
+-- | type synonym for post body content
 type PostBody = [(BS.ByteString, BS.ByteString)]
 
--- | type synonym of a URI
+-- | type synonym for URIs
 type URI = BS.ByteString
 
--- | Access Code that is required for fetching Access Token
+-- | Access code that is required for fetching an access token
 type AccessCode = BS.ByteString
 
 
@@ -80,46 +79,46 @@ type AccessCode = BS.ByteString
 --
 authorizationUrl :: OAuth2 -> URI
 authorizationUrl oa = oauthOAuthorizeEndpoint oa `appendQueryParam` queryStr
-  where queryStr = transform' [ ("client_id", Just $ oauthClientId oa)
-                              , ("response_type", Just "code")
-                              , ("redirect_uri", oauthCallback oa)]
+  where queryStr = transform [ ("client_id", Just $ oauthClientId oa)
+                             , ("response_type", Just "code")
+                             , ("redirect_uri", oauthCallback oa)]
 
 
 -- | Prepare URL and the request body query for fetching access token.
 --
 accessTokenUrl :: OAuth2
-                  -> AccessCode       -- ^ access code gained via authorization URL
-                  -> (URI, PostBody)  -- ^ access token request URL plus the request body.
+               -> AccessCode       -- ^ access code gained via authorization URL
+               -> (URI, PostBody)  -- ^ access token request URL plus the request body.
 accessTokenUrl oa code = accessTokenUrl' oa code (Just "authorization_code")
 
 
 accessTokenUrl' ::  OAuth2
-                    -> AccessCode            -- ^ access code gained via authorization URL
-                    -> Maybe BS.ByteString   -- ^ Grant Type
-                    -> (URI, PostBody)       -- ^ access token request URL plus the request body.
+                -> AccessCode            -- ^ access code gained via authorization URL
+                -> Maybe BS.ByteString   -- ^ Grant Type
+                -> (URI, PostBody)       -- ^ access token request URL plus the request body.
 accessTokenUrl' oa code gt = (uri, body)
   where uri  = oauthAccessTokenEndpoint oa
-        body = transform' [ ("client_id", Just $ oauthClientId oa)
-                          , ("client_secret", Just $ oauthClientSecret oa)
-                          , ("code", Just code)
-                          , ("redirect_uri", oauthCallback oa)
-                          , ("grant_type", gt) ]
+        body = transform [ ("client_id", Just $ oauthClientId oa)
+                         , ("client_secret", Just $ oauthClientSecret oa)
+                         , ("code", Just code)
+                         , ("redirect_uri", oauthCallback oa)
+                         , ("grant_type", gt) ]
 
 -- | Using a Refresh Token.
 --   obtain a new access token by sending a refresh token to the Authorization server.
 --
 refreshAccessTokenUrl :: OAuth2
-                         -> BS.ByteString    -- ^ refresh token gained via authorization URL
-                         -> (URI, PostBody)  -- ^ refresh token request URL plus the request body.
+                      -> BS.ByteString    -- ^ refresh token gained via authorization URL
+                      -> (URI, PostBody)  -- ^ refresh token request URL plus the request body.
 refreshAccessTokenUrl oa rtoken = (uri, body)
   where uri = oauthAccessTokenEndpoint oa
-        body = transform' [ ("client_id", Just $ oauthClientId oa)
-                          , ("client_secret", Just $ oauthClientSecret oa)
-                          , ("grant_type", Just "refresh_token")
-                          , ("refresh_token", Just rtoken) ]
+        body = transform [ ("client_id", Just $ oauthClientId oa)
+                         , ("client_secret", Just $ oauthClientSecret oa)
+                         , ("grant_type", Just "refresh_token")
+                         , ("refresh_token", Just rtoken) ]
 
 --------------------------------------------------
--- * UTILs
+-- * Utilities to render auth URLs
 --------------------------------------------------
 
 -- | Append query parameters with '?'
@@ -131,9 +130,9 @@ appendQueryParam' :: URI -> QueryParams -> URI
 appendQueryParam' uri q = uri `BS.append` "&" `BS.append` renderSimpleQuery False q
 
 -- | For GET method API.
-appendAccessToken :: URI   -- ^ Base URI
-          -> OAuth2        -- ^ OAuth has Authorized Access Token
-          -> URI           -- ^ Combined Result
+appendAccessToken :: URI      -- ^ Base URI
+                  -> OAuth2   -- ^ OAuth has Authorized Access Token
+                  -> URI      -- ^ Combined Result
 appendAccessToken uri oauth = appendQueryParam uri
                               (token $ oauthAccessToken oauth)
                               where token :: Maybe BS.ByteString -> QueryParams
@@ -145,13 +144,9 @@ accessTokenToParam :: BS.ByteString -> QueryParams
 accessTokenToParam token = [("access_token", token)]
 
 
--- | lift value in the Maybe and abonda Nothing
-transform' :: [(a, Maybe b)] -> [(a, b)]
-transform' = foldr step' []
-             where step' :: (a, Maybe b) -> [(a, b)] -> [(a, b)]
-                   step' (a, Just b) xs = (a, b):xs
-                   step' _ xs = xs
-
+-- | Filter @Nothing@s out of the list
+transform :: [(a, Maybe b)] -> [(a, b)]
+transform = map (\(a, Just b) -> (a,b)) . filter (isJust . snd)
 
                         -- Expect Access Token exists
                         -- FIXME: append empty when Nothing

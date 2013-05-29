@@ -7,14 +7,10 @@
 module Network.OAuth.OAuth2.HttpClient where
 
 import           Control.Exception             (catch)
-import           Control.Monad                 (liftM)
-import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Resource  (ResourceT)
 import           Data.Aeson
 import qualified Data.ByteString.Char8         as BS
 import qualified Data.ByteString.Lazy.Char8    as BSL
-import qualified Data.Text                     as T
-import qualified Data.Text.Encoding            as T
 import           Network.HTTP.Conduit
 import           Network.HTTP.Types
 
@@ -78,7 +74,7 @@ oauth2BearerHeader (AccessToken t _) r =
 
 -- |Sets the HTTP method to use
 setMethod :: StdMethod -> Request m -> Request m
-setMethod method request = request { method = renderStdMethod method }
+setMethod m req = req { method = renderStdMethod m }
 
 -- |Sends a HTTP request including the Authorization header with the specified
 --  access token.
@@ -86,11 +82,11 @@ authenticatedRequest :: AccessToken             -- ^ Authentication token to use
                      -> StdMethod               -- ^ Method to use
                      -> Request (ResourceT IO)  -- ^ Request to perform
                      -> IO (OAuth2Result (Response BSL.ByteString))
-authenticatedRequest token method r =
+authenticatedRequest token m r =
     catch (fmap Right $ withManager $ httpLbs request)                  -- If Response goes through, return it
           (\e -> return $ Left $ BSL.pack $ show (e :: HttpException))  -- If we get an Exception, show it and return
   where
-    request = oauth2BearerHeader token $ setMethod method r
+    request = oauth2BearerHeader token $ setMethod m r
 
 -- |If you're only interested in the response body you can use this to extract
 --  it from the result of authenticatedRequest
