@@ -1,4 +1,5 @@
-{-# LANGUAGE OverloadedStrings, TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell   #-}
 
 {-
 
@@ -12,31 +13,32 @@ Google OAuth 2.0 playround: https://developers.google.com/oauthplayground/
 
 module Main where
 
-import Network.OAuth.OAuth2.HttpClient
-import Network.OAuth.OAuth2
-import Keys (googleKey)
+import           Keys                          (googleKey)
+import           Network.OAuth.OAuth2
 
-import Control.Applicative ((<$>), (<*>))
-import Control.Monad (mzero)
-import Data.Aeson (FromJSON, Value(Object), parseJSON, (.:), (.:?))
-import Data.Aeson.TH (deriveJSON)
-import qualified Data.ByteString.Char8 as BS
+import           Control.Applicative           ((<$>), (<*>))
+import           Control.Monad                 (mzero)
+import           Data.Aeson                    (FromJSON, Value (Object),
+                                                parseJSON, (.:), (.:?))
+import           Data.Aeson.TH                 (deriveJSON)
+import qualified Data.ByteString.Char8         as BS
 import qualified Data.ByteString.Lazy.Internal as BL
-import Data.Text (Text)
-import Prelude hiding (id)
-import qualified Prelude as P (id)
-import System.Environment (getArgs)
+import           Data.Text                     (Text)
+import           Network.HTTP.Types
+import           Prelude                       hiding (id)
+import qualified Prelude                       as P (id)
+import           System.Environment            (getArgs)
 
 --------------------------------------------------
 
-data Token = Token { issued_to   :: Text
-                   , audience    :: Text
-                   , user_id     :: Maybe Text
-                   , scope       :: Text
-                   , expires_in  :: Integer
-                   , email       :: Maybe Text
+data Token = Token { issued_to      :: Text
+                   , audience       :: Text
+                   , user_id        :: Maybe Text
+                   , scope          :: Text
+                   , expires_in     :: Integer
+                   , email          :: Maybe Text
                    , verified_email :: Maybe Bool
-                   , access_type :: Text
+                   , access_type    :: Text
                    } deriving (Show)
 
 instance FromJSON Token where
@@ -70,7 +72,7 @@ main :: IO ()
 main = do
     xs <- getArgs
     case xs of
-        ["offline"] -> offlineCase
+--        ["offline"] -> offlineCase
         _ -> normalCase
 
 offlineCase :: IO ()
@@ -78,33 +80,32 @@ offlineCase = do
     print $ authorizationUrl googleKey `appendQueryParam'` googleScopeEmail `appendQueryParam'` googleAccessOffline
     putStrLn "visit the url and paste code here: "
     code <- fmap BS.pack getLine
-    (Just (AccessToken accessToken refreshToken)) <- requestAccessToken googleKey code
-    print (accessToken, refreshToken)
-    validateToken accessToken >>= print
-    (validateToken' accessToken :: IO (Maybe Token)) >>= print
-    --
-    -- obtain a new access token with refresh token, which turns out only in response at first time.
-    -- Revoke Access https://www.google.com/settings/security
-    --
-    case refreshToken of
-        Nothing -> print "Failed to fetch refresh token"
-        Just tk -> do
-            (Just (AccessToken accessToken refreshToken)) <- refreshAccessToken googleKey tk
-            print (accessToken, refreshToken)
-            validateToken accessToken >>= print
-            (validateToken' accessToken :: IO (Maybe Token)) >>= print
+    accessToken <- requestAccessToken googleKey code
+    case accessToken of
+        Left e  -> putStr "Authentication failed with " >> print e
+        Right t -> do validateToken t >>= print
+                      case refreshToken t of
+                          Nothing -> putStrLn "Failed to fetch refresh token"
+                          Just tk -> do
+                              refreshed <- refreshAccessToken googleKey code
+                              case refreshed of
+                                  Left e  -> putStr "Authentication failed with " >> print e
+                                  Right t -> do validateToken t >>= print
 
 normalCase :: IO ()
 normalCase = do
+    -- Prepare the authorization URL and prompt the user to authenticate
     print $ authorizationUrl googleKey `appendQueryParam'` googleScopeUserInfo
-    putStrLn "visit the url and paste code here: "
+    putStrLn "Visit this URL and paste the code here: "
     code <- fmap BS.pack getLine
-    (Just (AccessToken accessToken Nothing)) <- requestAccessToken googleKey code
+    -- Request the actual access token
+    accessToken <- requestAccessToken googleKey code
     putStr "AccessToken: " >> print accessToken
-    validateToken accessToken >>= print
-    (validateToken' accessToken :: IO (Maybe Token)) >>= print
-    userinfo accessToken >>= print
-    (userinfo' accessToken :: IO (Maybe User)) >>= print
+    -- Perform some operations with the token
+    case accessToken of
+        Left e  -> putStr "Authentication failed with " >> print e
+        Right t -> do validateToken t >>= print
+                      userinfo t >>= print
 
 --------------------------------------------------
 -- Google API
@@ -123,18 +124,17 @@ googleAccessOffline = [("access_type", "offline")
                       ,("approval_prompt", "force")]
 
 -- | Token Validation
-validateToken :: BS.ByteString -> IO BL.ByteString
-validateToken accessToken = doSimpleGetRequest ("https://www.googleapis.com/oauth2/v1/tokeninfo" `appendQueryParam` (accessTokenToParam accessToken))
-
-validateToken' :: FromJSON a => BS.ByteString -> IO (Maybe a)
-validateToken' accessToken = doJSONGetRequest ("https://www.googleapis.com/oauth2/v1/tokeninfo" `appendQueryParam` (accessTokenToParam accessToken))
+validateToken :: AccessToken -> IO (Maybe BL.ByteString)
+validateToken accessToken = do
+  req <- parseUrl "https://www.googleapis.com/oauth2/v1/tokeninfo"
+  rsp <- getReqAuth accessToken req
+  return $ getResponseBody rsp
 
 -- | fetch user email.
 --   for more information, please check the playround site.
 --
-userinfo :: BS.ByteString -> IO BL.ByteString
-userinfo accessToken = doSimpleGetRequest ("https://www.googleapis.com/oauth2/v2/userinfo" `appendQueryParam` (accessTokenToParam accessToken))
-
-userinfo' :: FromJSON a => BS.ByteString -> IO (Maybe a)
-userinfo' accessToken = doJSONGetRequest ("https://www.googleapis.com/oauth2/v2/userinfo" `appendQueryParam` (accessTokenToParam accessToken))
-
+userinfo :: AccessToken -> IO (Maybe BL.ByteString)
+userinfo accessToken = do
+  req <- parseUrl "https://www.googleapis.com/oauth2/v2/userinfo"
+  rsp <- getReqAuth accessToken req
+  return $ getResponseBody rsp
