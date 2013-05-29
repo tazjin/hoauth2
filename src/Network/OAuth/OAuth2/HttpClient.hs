@@ -84,7 +84,7 @@ authenticatedRequest token m r =
     catch (fmap Right $ withManager $ httpLbs request)                  -- If Response goes through, return it
           (\e -> return $ Left $ BSL.pack $ show (e :: HttpException))  -- If we get an Exception, show it and return
   where
-    request = oauth2BearerHeader token $ setMethod m r
+    request = oauth2BearerHeader token $ setMethod m r { checkStatus = \_ _ _ -> Nothing }
 
 -- |If you're only interested in the response body you can use this to extract
 --  it from the result of authenticatedRequest
