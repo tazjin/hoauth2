@@ -3,24 +3,32 @@
     import "Network.OAuth.OAuth2.Internal" directly and work with your own implementation.
 -}
 module Network.OAuth.OAuth2 (
-  -- ^ Types
+  -- * Types
     Internal.OAuth2(..)
   , Internal.AccessToken(..)
   , Internal.OAuth2Result
+  , URI
+  , QueryParams
 
-  -- ^ Retrieve access token
+  -- * Retrieve access token
   , Http.requestAccessToken
   , Http.refreshAccessToken
 
-  -- ^ Simple authenticated requests
+  -- * Simple authenticated requests
   , Http.getReqAuth
   , Http.postReqAuth
   , Http.authenticatedRequest
+  , parseUrl
 
-  -- ^ Utilities
+  -- * Utilities
   , Http.getResponseBody
+  , Internal.authorizationUrl
+  , Internal.appendQueryParam
+  , Internal.appendQueryParam'
+  , Internal.accessTokenToParam
 
   ) where
 
 import           Network.OAuth.OAuth2.HttpClient as Http
 import           Network.OAuth.OAuth2.Internal   as Internal
+import           Network.HTTP.Conduit (parseUrl)

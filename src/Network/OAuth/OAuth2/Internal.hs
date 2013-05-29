@@ -13,7 +13,7 @@ import           Control.Monad        (mzero)
 import           Data.Aeson
 import qualified Data.ByteString      as BS
 import qualified Data.ByteString.Lazy as BSL
-import           Data.Maybe           (fromMaybe, isJust)
+import           Data.Maybe           (isJust)
 import           Network.HTTP.Types   (renderSimpleQuery)
 
 --------------------------------------------------
@@ -28,8 +28,6 @@ data OAuth2 = OAuth2 {
     , oauthOAuthorizeEndpoint  :: BS.ByteString
     , oauthAccessTokenEndpoint :: BS.ByteString
     , oauthCallback            :: Maybe BS.ByteString
-    , oauthAccessToken         :: Maybe BS.ByteString
-    -- ^ TODO: why not Maybe AccessToken???
     } deriving (Show, Eq)
 
 
@@ -75,8 +73,7 @@ type AccessCode = BS.ByteString
 --------------------------------------------------
 
 -- | Prepare the authorization URL.
---   Redirect to this URL asking for user interactive authentication.
---
+--   Redirect user to this URL to ask for interactive authentication
 authorizationUrl :: OAuth2 -> URI
 authorizationUrl oa = oauthOAuthorizeEndpoint oa `appendQueryParam` queryStr
   where queryStr = transform [ ("client_id", Just $ oauthClientId oa)
@@ -129,17 +126,7 @@ appendQueryParam uri q = uri `BS.append` renderSimpleQuery True q
 appendQueryParam' :: URI -> QueryParams -> URI
 appendQueryParam' uri q = uri `BS.append` "&" `BS.append` renderSimpleQuery False q
 
--- | For GET method API.
-appendAccessToken :: URI      -- ^ Base URI
-                  -> OAuth2   -- ^ OAuth has Authorized Access Token
-                  -> URI      -- ^ Combined Result
-appendAccessToken uri oauth = appendQueryParam uri
-                              (token $ oauthAccessToken oauth)
-                              where token :: Maybe BS.ByteString -> QueryParams
-                                    token = accessTokenToParam . fromMaybe ""
-
 -- | Create QueryParams with given access token value.
---
 accessTokenToParam :: BS.ByteString -> QueryParams
 accessTokenToParam token = [("access_token", token)]
 

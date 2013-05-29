@@ -20,17 +20,15 @@ import           Network.OAuth.OAuth2.Internal
 -- * Retrieve access token
 --------------------------------------------------
 
--- | Request (via POST method) "Access Token".
---
---   FIXME: what if @requestAccessToken@ return error?
---
-requestAccessToken :: OAuth2              -- ^ OAuth Data
-                   -> BS.ByteString       -- ^ Authentication code gained after authorization
+-- | Requests an access token according to the provider details specified
+--   in the supplied 'OAuth2'
+requestAccessToken :: OAuth2          -- ^ OAuth context
+                   -> BS.ByteString   -- ^ Authentication code gained after authorization
                    -> IO (OAuth2Result AccessToken) -- ^ Access Token
 requestAccessToken oa code = doJSONPostRequest (accessTokenUrl oa code)
 
 
--- | Request the "Refresh Token".
+-- | Requests a refresh token
 refreshAccessToken :: OAuth2          -- ^ OAuth context
                    -> BS.ByteString   -- ^ refresh token gained after authorization
                    -> IO (OAuth2Result AccessToken)
