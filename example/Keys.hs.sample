@@ -6,12 +6,11 @@ import Network.OAuth.OAuth2
 
 weiboKey :: OAuth2
 weiboKey = OAuth2 { oauthClientId = "xxxxxxxxxxxxxxx"
-                   , oauthClientSecret = "xxxxxxxxxxxxxxxxxxxxxx"
-                   , oauthCallback = Just "http://127.0.0.1:9988/oauthCallback"
-                   , oauthOAuthorizeEndpoint = ""
-                   , oauthAccessTokenEndpoint = ""
-                   , oauthAccessToken = Nothing
-                   }
+                  , oauthClientSecret = "xxxxxxxxxxxxxxxxxxxxxx"
+                  , oauthCallback = Just "http://127.0.0.1:9988/oauthCallback"
+                  , oauthOAuthorizeEndpoint = ""
+                  , oauthAccessTokenEndpoint = ""
+                  }
 
 githubKeys :: OAuth2
 githubKeys = OAuth2 { oauthClientId = "xxxxxxxxxxxxxxx"
@@ -19,7 +18,6 @@ githubKeys = OAuth2 { oauthClientId = "xxxxxxxxxxxxxxx"
                     , oauthCallback = Just "http://127.0.0.1:9988/oauthCallback"
                     , oauthOAuthorizeEndpoint = "http://developer.github.com/v3/oauth/"
                     , oauthAccessTokenEndpoint = "http://developer.github.com/v3/oauth/"
-                    , oauthAccessToken = Nothing
                     }
 
 googleKey :: OAuth2
@@ -28,13 +26,13 @@ googleKey = OAuth2 { oauthClientId = "xxxxxxxxxxxxxxx.apps.googleusercontent.com
                    , oauthCallback = Just "https://developers.google.com/oauthplayground"
                    , oauthOAuthorizeEndpoint = "https://accounts.google.com/o/oauth2/auth"
                    , oauthAccessTokenEndpoint = "https://accounts.google.com/o/oauth2/token"
-                   , oauthAccessToken = Nothing}
+                   }
 
 facebookKey :: OAuth2
 facebookKey = OAuth2 { oauthClientId = "xxxxxxxxxxxxxxx"
-                      , oauthClientSecret = "xxxxxxxxxxxxxxxxxxxxxx"
-                      , oauthCallback = Just "https://developers.facebook.com/tools/debug"
-                      , oauthOAuthorizeEndpoint = "https://www.facebook.com/dialog/oauth"
-                      , oauthAccessTokenEndpoint = "https://graph.facebook.com/oauth/access_token"
-                      , oauthAccessToken = Nothing}
+                     , oauthClientSecret = "xxxxxxxxxxxxxxxxxxxxxx"
+                     , oauthCallback = Just "https://developers.facebook.com/tools/debug"
+                     , oauthOAuthorizeEndpoint = "https://www.facebook.com/dialog/oauth"
+                     , oauthAccessTokenEndpoint = "https://graph.facebook.com/oauth/access_token"
+                     }
 
