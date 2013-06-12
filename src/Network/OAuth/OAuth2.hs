@@ -17,6 +17,8 @@ module Network.OAuth.OAuth2 (
   -- * Simple authenticated requests
   , Http.getReqAuth
   , Http.postReqAuth
+  , Http.putReqAuth
+  , Http.deleteReqAuth
   , Http.authenticatedRequest
   , parseUrl
 
