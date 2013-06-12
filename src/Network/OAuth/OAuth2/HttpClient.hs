@@ -100,6 +100,14 @@ getReqAuth t = authenticatedRequest t GET
 postReqAuth :: AccessToken -> Request (ResourceT IO) -> IO (OAuth2Result (Response BSL.ByteString))
 postReqAuth t = authenticatedRequest t POST
 
+-- |This is 'authenticatedRequest' specialized to POST
+deleteReqAuth :: AccessToken -> Request (ResourceT IO) -> IO (OAuth2Result (Response BSL.ByteString))
+deleteReqAuth t = authenticatedRequest t DELETE
+
+-- |This is 'authenticatedRequest' specialized to POST
+putReqAuth :: AccessToken -> Request (ResourceT IO) -> IO (OAuth2Result (Response BSL.ByteString))
+putReqAuth t = authenticatedRequest t PUT
+
 --------------------------------------------------
 -- * Simple HTTP requests
 --------------------------------------------------
